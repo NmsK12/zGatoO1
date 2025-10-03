@@ -883,14 +883,14 @@ def dni_result():
     
     # Validar API key
     if not api_key:
-    return jsonify({
+        return jsonify({
             'success': False,
             'error': 'API Key requerida. Use: /dniresult?dni=12345678&key=TU_API_KEY'
         }), 401
     
     # Validar API key en base de datos
     if not validate_api_key(api_key):
-    return jsonify({
+        return jsonify({
             'success': False,
             'error': 'API Key inválida o expirada'
         }), 401
