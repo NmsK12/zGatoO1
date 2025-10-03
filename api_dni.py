@@ -419,7 +419,7 @@ def consult_dnit_sync(dni_number):
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dnit_async(dni_number), loop)
         result = future.result(timeout=35)  # 35 segundos de timeout
-                return result
+        return result
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout consultando DNI detallado {dni_number}")
