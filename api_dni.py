@@ -913,9 +913,9 @@ def dni_result():
         
     if result['success']:
         response = {
-                'success': True,
+            'success': True,
             'dni': dni,
-        'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat()
         }
         
         # Agregar foto base64 primero si existe
@@ -926,11 +926,11 @@ def dni_result():
         response['data'] = result['parsed_data']
         
         return jsonify(response)
-        else:
-            return jsonify({
-                'success': False,
+    else:
+        return jsonify({
+            'success': False,
             'error': result['error']
-            }), 500
+        }), 500
             
 @app.route('/dnit', methods=['GET'])
 def dnit_result():
@@ -955,7 +955,7 @@ def dnit_result():
     
     if result['success']:
         response = {
-                'success': True,
+            'success': True,
             'dni': dni,
             'timestamp': datetime.now().isoformat(),
             'data': result['parsed_data']
@@ -966,9 +966,9 @@ def dnit_result():
             response['images'] = result['images']
         
         return jsonify(response)
-        else:
-            return jsonify({
-                'success': False,
+    else:
+        return jsonify({
+            'success': False,
             'error': result['error']
         }), 500
 
@@ -1050,9 +1050,9 @@ def antpen_result():
                 'data': result['parsed_data']
             }
             return jsonify(response)
-        else:
-            return jsonify({
-                'success': False,
+    else:
+        return jsonify({
+            'success': False,
             'error': result['error']
         }), 500
 
@@ -1272,7 +1272,7 @@ def restart_telethon():
         
         # Esperar un poco antes de reiniciar
         import time
-            time.sleep(2)
+        time.sleep(2)
         
         # Reiniciar en un nuevo hilo
         init_telethon_thread()
@@ -1288,8 +1288,8 @@ def init_telethon_thread():
     
     def run_telethon():
         global client, loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
             
         async def init_client():
             global client
@@ -1301,8 +1301,8 @@ def init_telethon_thread():
                 
                 logger.info("Cliente de Telethon iniciado correctamente")
                 return True
-        except Exception as e:
-            logger.error(f"Error inicializando Telethon: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error inicializando Telethon: {str(e)}")
                 # Si es un error de EOF, la sesión puede estar corrupta
                 if "EOF" in str(e):
                     logger.error("Error EOF detectado - la sesión puede estar corrupta")
