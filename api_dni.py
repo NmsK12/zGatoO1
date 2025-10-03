@@ -317,10 +317,10 @@ def consult_dni_sync(dni_number):
         # Verificar que el cliente esté disponible
         if not client or not loop:
             logger.error("Cliente de Telethon no está disponible")
-            return {
-                'success': False,
+        return {
+            'success': False,
                 'error': 'Cliente de Telegram no disponible. Intenta nuevamente en unos segundos.'
-            }
+        }
     
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dni_async(dni_number), loop)
@@ -335,6 +335,16 @@ def consult_dni_sync(dni_number):
         }
     except Exception as e:
         logger.error(f"Error consultando DNI {dni_number}: {str(e)}")
+        
+        # Si es un error de desconexión, intentar reconectar
+        if "Cannot send requests while disconnected" in str(e):
+            logger.error("Error de desconexión detectado, intentando reconectar...")
+            restart_telethon()
+            return {
+                'success': False,
+                'error': 'Error de conexión detectado. Intenta nuevamente en unos segundos.'
+            }
+        
         # Si es un error de Constructor ID, intentar reiniciar la sesión
         if "Constructor ID" in str(e) or "8f97c628" in str(e):
             logger.error("Error de Constructor ID detectado - versión de Telethon incompatible")
@@ -371,7 +381,7 @@ def consult_dnit_sync(dni_number):
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dnit_async(dni_number), loop)
         result = future.result(timeout=35)  # 35 segundos de timeout
-        return result
+                return result
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout consultando DNI detallado {dni_number}")
@@ -381,6 +391,16 @@ def consult_dnit_sync(dni_number):
         }
     except Exception as e:
         logger.error(f"Error consultando DNI detallado {dni_number}: {str(e)}")
+        
+        # Si es un error de desconexión, intentar reconectar
+        if "Cannot send requests while disconnected" in str(e):
+            logger.error("Error de desconexión detectado, intentando reconectar...")
+                restart_telethon()
+            return {
+                'success': False,
+                'error': 'Error de conexión detectado. Intenta nuevamente en unos segundos.'
+            }
+        
         return {
             'success': False,
             'error': f'Error en la consulta: {str(e)}'
@@ -402,7 +422,7 @@ def consult_antecedentes_sync(dni_number, tipo):
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_antecedentes_async(dni_number, tipo), loop)
         result = future.result(timeout=35)  # 35 segundos de timeout
-        return result
+                return result
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout consultando {tipo.upper()} DNI {dni_number}")
@@ -412,6 +432,16 @@ def consult_antecedentes_sync(dni_number, tipo):
         }
     except Exception as e:
         logger.error(f"Error consultando {tipo.upper()} DNI {dni_number}: {str(e)}")
+        
+        # Si es un error de desconexión, intentar reconectar
+        if "Cannot send requests while disconnected" in str(e):
+            logger.error("Error de desconexión detectado, intentando reconectar...")
+            restart_telethon()
+            return {
+                'success': False,
+                'error': 'Error de conexión detectado. Intenta nuevamente en unos segundos.'
+            }
+        
         # Si es un error de Constructor ID, intentar reiniciar la sesión
         if "Constructor ID" in str(e) or "8f97c628" in str(e):
             logger.error("Error de Constructor ID detectado - versión de Telethon incompatible")
@@ -835,7 +865,7 @@ def dni_result():
     
     # Validar API key
     if not api_key:
-        return jsonify({
+    return jsonify({
             'success': False,
             'error': 'API Key requerida. Use: /dniresult?dni=12345678&key=TU_API_KEY'
         }), 401
@@ -843,7 +873,7 @@ def dni_result():
     # Validar API key en base de datos
     validation = validate_api_key(api_key)
     if not validation['valid']:
-        return jsonify({
+    return jsonify({
             'success': False,
             'error': validation['error']
         }), 401
@@ -866,7 +896,7 @@ def dni_result():
         
     if result['success']:
         response = {
-            'success': True,
+                'success': True,
             'dni': dni,
             'timestamp': datetime.now().isoformat()
         }
@@ -879,11 +909,11 @@ def dni_result():
         response['data'] = result['parsed_data']
         
         return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
-        }), 500
+            }), 500
             
 @app.route('/dnit', methods=['GET'])
 def dnit_result():
@@ -1003,9 +1033,9 @@ def antpen_result():
                 'data': result['parsed_data']
             }
             return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
         }), 500
 
@@ -1215,17 +1245,31 @@ def restart_telethon():
     global client, loop
     
     try:
+        logger.info("Iniciando reinicio de Telethon...")
+        
         if client:
             # Cerrar cliente existente
             try:
-                loop.call_soon_threadsafe(lambda: asyncio.create_task(client.disconnect()))
-            except:
-                pass
-            client = None
+                if loop and not loop.is_closed():
+                    loop.call_soon_threadsafe(lambda: asyncio.create_task(client.disconnect()))
+                else:
+                    # Si el loop está cerrado, crear uno nuevo para desconectar
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    new_loop.run_until_complete(client.disconnect())
+                    new_loop.close()
+            except Exception as e:
+                logger.warning(f"Error cerrando cliente anterior: {e}")
+            finally:
+                client = None
+        
+        if loop and not loop.is_closed():
+            loop.close()
+        loop = None
         
         # Esperar un poco antes de reiniciar
         import time
-        time.sleep(2)
+        time.sleep(3)
         
         # Reiniciar en un nuevo hilo
         init_telethon_thread()
