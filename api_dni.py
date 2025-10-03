@@ -1237,35 +1237,32 @@ def restart_telethon():
 
 def init_telethon_thread():
     """Inicializa Telethon en un hilo separado."""
-    global client, loop
-    
     def run_telethon():
         global client, loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             
-        async def init_client():
-            global client
-            try:
-                client = TelegramClient('telethon_railway_session', config.API_ID, config.API_HASH)
-                
-                # Usar start() sin parámetros para evitar prompts interactivos
+            client = TelegramClient(
+                'telethon_session',
+                config.API_ID,
+                config.API_HASH
+            )
+            
+            # Iniciar el cliente de forma asíncrona
+            async def start_client():
                 await client.start()
-                
                 logger.info("Cliente de Telethon iniciado correctamente")
-                return True
-            except Exception as e:
-                logger.error(f"Error inicializando Telethon: {str(e)}")
-                # Si es un error de EOF, la sesión puede estar corrupta
-                if "EOF" in str(e):
-                    logger.error("Error EOF detectado - la sesión puede estar corrupta")
-                return False
-        
-        success = loop.run_until_complete(init_client())
-        if success:
-            loop.run_forever()  # Mantener el loop corriendo
+            
+            loop.run_until_complete(start_client())
+            
+            # Mantener el loop corriendo
+            loop.run_forever()
+            
+        except Exception as e:
+            logger.error(f"Error inicializando Telethon: {str(e)}")
     
-    # Iniciar hilo de Telethon
+    # Iniciar en hilo separado
     thread = threading.Thread(target=run_telethon, daemon=True)
     thread.start()
     
