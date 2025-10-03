@@ -18,6 +18,7 @@ from io import BytesIO
 
 from flask import Flask, jsonify, request, send_file, make_response
 from PIL import Image
+from database_postgres import validate_api_key, init_database, register_api_key, delete_api_key
 from telethon import TelegramClient
 from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import MessageMediaPhoto
@@ -39,56 +40,7 @@ app = Flask(__name__)
 client = None
 loop = None
 
-def validate_api_key(api_key):
-    """Valida si la API key existe y no ha expirado."""
-    try:
-        # Conectar a PostgreSQL
-        import psycopg2
-        conn = psycopg2.connect(
-            host="yamabiko.proxy.rlwy.net",
-            port="25975",
-            database="railway",
-            user="postgres",
-            password="obhVnLxfoSFQDRtwtSBPayWfuFxGUGFx"
-        )
-        cursor = conn.cursor()
-        
-        # Verificar API key
-        cursor.execute("""
-            SELECT key, expires_at, time_remaining 
-            FROM api_keys 
-            WHERE key = %s AND (expires_at > NOW() OR time_remaining > 0)
-        """, (api_key,))
-        
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        
-        if result:
-            # Actualizar usage_count y last_used
-            conn = psycopg2.connect(
-                host="yamabiko.proxy.rlwy.net",
-                port="25975",
-                database="railway",
-                user="postgres",
-                password="obhVnLxfoSFQDRtwtSBPayWfuFxGUGFx"
-            )
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE api_keys 
-                SET usage_count = usage_count + 1, last_used = NOW() 
-                WHERE key = %s
-            """, (api_key,))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return True
-        
-        return False
-        
-    except Exception as e:
-        logger.error(f"Error validando API key: {str(e)}")
-        return False
+# La función validate_api_key ahora se importa desde database_postgres
 
 def parse_dni_response(text):
     """Parsea la respuesta del bot y extrae los datos del DNI."""
@@ -889,10 +841,11 @@ def dni_result():
         }), 401
     
     # Validar API key en base de datos
-    if not validate_api_key(api_key):
+    validation = validate_api_key(api_key)
+    if not validation['valid']:
         return jsonify({
             'success': False,
-            'error': 'API Key inválida o expirada'
+            'error': validation['error']
         }), 401
     
     if not dni:
@@ -1321,6 +1274,9 @@ def init_telethon_thread():
 
 def main():
     """Función principal."""
+    # Inicializar base de datos
+    init_database()
+    
     # Inicializar Telethon en hilo separado
     init_telethon_thread()
     
