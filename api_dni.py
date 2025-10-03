@@ -39,6 +39,57 @@ app = Flask(__name__)
 client = None
 loop = None
 
+def validate_api_key(api_key):
+    """Valida si la API key existe y no ha expirado."""
+    try:
+        # Conectar a PostgreSQL
+        import psycopg2
+        conn = psycopg2.connect(
+            host="yamabiko.proxy.rlwy.net",
+            port="25975",
+            database="railway",
+            user="postgres",
+            password="obhVnLxfoSFQDRtwtSBPayWfuFxGUGFx"
+        )
+        cursor = conn.cursor()
+        
+        # Verificar API key
+        cursor.execute("""
+            SELECT key, expires_at, time_remaining 
+            FROM api_keys 
+            WHERE key = %s AND (expires_at > NOW() OR time_remaining > 0)
+        """, (api_key,))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if result:
+            # Actualizar usage_count y last_used
+            conn = psycopg2.connect(
+                host="yamabiko.proxy.rlwy.net",
+                port="25975",
+                database="railway",
+                user="postgres",
+                password="obhVnLxfoSFQDRtwtSBPayWfuFxGUGFx"
+            )
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE api_keys 
+                SET usage_count = usage_count + 1, last_used = NOW() 
+                WHERE key = %s
+            """, (api_key,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True
+        
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error validando API key: {str(e)}")
+        return False
+
 def parse_dni_response(text):
     """Parsea la respuesta del bot y extrae los datos del DNI."""
     data = {}
@@ -314,11 +365,11 @@ def consult_dni_sync(dni_number):
         # Verificar que el cliente esté disponible
         if not client or not loop:
             logger.error("Cliente de Telethon no está disponible")
-            return {
-                'success': False,
+        return {
+            'success': False,
                 'error': 'Cliente de Telegram no disponible. Intenta nuevamente en unos segundos.'
-            }
-        
+        }
+    
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dni_async(dni_number), loop)
         result = future.result(timeout=35)  # 35 segundos de timeout
@@ -368,7 +419,7 @@ def consult_dnit_sync(dni_number):
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dnit_async(dni_number), loop)
         result = future.result(timeout=35)  # 35 segundos de timeout
-        return result
+                return result
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout consultando DNI detallado {dni_number}")
@@ -828,28 +879,43 @@ async def consult_antecedentes_async(dni_number, tipo):
 def dni_result():
     """Endpoint para consultar DNI."""
     dni = request.args.get('dni')
+    api_key = request.args.get('key')
+    
+    # Validar API key
+    if not api_key:
+    return jsonify({
+            'success': False,
+            'error': 'API Key requerida. Use: /dniresult?dni=12345678&key=TU_API_KEY'
+        }), 401
+    
+    # Validar API key en base de datos
+    if not validate_api_key(api_key):
+    return jsonify({
+            'success': False,
+            'error': 'API Key inválida o expirada'
+        }), 401
     
     if not dni:
         return jsonify({
             'success': False,
-            'error': 'Parámetro DNI requerido. Use: /dniresult?dni=12345678'
+            'error': 'Parámetro DNI requerido. Use: /dniresult?dni=12345678&key=TU_API_KEY'
         }), 400
     
     # Verificar formato del DNI
     if not dni.isdigit() or len(dni) != 8:
-        return jsonify({
-            'success': False,
+            return jsonify({
+                'success': False,
             'error': 'DNI debe ser un número de 8 dígitos'
-        }), 400
-    
+            }), 400
+        
     # Ejecutar consulta síncrona
     result = consult_dni_sync(dni)
-    
+        
     if result['success']:
         response = {
-            'success': True,
+                'success': True,
             'dni': dni,
-            'timestamp': datetime.now().isoformat()
+        'timestamp': datetime.now().isoformat()
         }
         
         # Agregar foto base64 primero si existe
@@ -860,12 +926,12 @@ def dni_result():
         response['data'] = result['parsed_data']
         
         return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
-        }), 500
-
+            }), 500
+            
 @app.route('/dnit', methods=['GET'])
 def dnit_result():
     """Endpoint para consultar DNI detallado."""
@@ -889,7 +955,7 @@ def dnit_result():
     
     if result['success']:
         response = {
-            'success': True,
+                'success': True,
             'dni': dni,
             'timestamp': datetime.now().isoformat(),
             'data': result['parsed_data']
@@ -900,9 +966,9 @@ def dnit_result():
             response['images'] = result['images']
         
         return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
         }), 500
 
@@ -912,18 +978,18 @@ def antpen_result():
     dni = request.args.get('dni')
     
     if not dni:
-        return jsonify({
-            'success': False,
+            return jsonify({
+                'success': False,
             'error': 'Parámetro DNI requerido. Use: /antpen?dni=12345678'
-        }), 400
-    
+            }), 400
+        
     # Verificar formato del DNI
     if not dni.isdigit() or len(dni) != 8:
-        return jsonify({
-            'success': False,
+            return jsonify({
+                'success': False,
             'error': 'DNI debe ser un número de 8 dígitos'
-        }), 400
-    
+            }), 400
+        
     # Ejecutar consulta síncrona
     result = consult_antecedentes_sync(dni, 'penales')
     
@@ -984,9 +1050,9 @@ def antpen_result():
                 'data': result['parsed_data']
             }
             return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
         }), 500
 
@@ -1073,7 +1139,7 @@ def antpol_result():
             'success': False,
             'error': result['error']
         }), 500
-
+    
 @app.route('/antjud', methods=['GET'])
 def antjud_result():
     """Endpoint para consultar antecedentes judiciales."""
@@ -1103,10 +1169,10 @@ def antjud_result():
             pdf_base64 = base64.b64encode(result['pdf_data']).decode('utf-8')
             
             json_data = {
-                'success': True,
-                'dni': dni,
+            'success': True,
+            'dni': dni,
                 'tipo': 'ANTECEDENTES_JUDICIALES',
-                'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now().isoformat(),
                 'data': result['parsed_data'],
                 'pdf_base64': pdf_base64,
                 'pdf_filename': f"antecedentes_judiciales_{dni}.pdf"
@@ -1151,7 +1217,7 @@ def antjud_result():
                 'timestamp': datetime.now().isoformat(),
                 'data': result['parsed_data']
             }
-            return jsonify(response)
+        return jsonify(response)
     else:
         return jsonify({
             'success': False,
@@ -1186,17 +1252,9 @@ def health_check():
 def home():
     """Página de inicio de la API."""
     return jsonify({
-        'service': 'WolfData DNI API',
-        'version': '2.0.0',
-        'endpoints': {
-            'dni_query': '/dniresult?dni=12345678',
-            'dni_detallado': '/dnit?dni=12345678',
-            'antecedentes_penales': '/antpen?dni=12345678',
-            'antecedentes_policiales': '/antpol?dni=12345678',
-            'antecedentes_judiciales': '/antjud?dni=12345678',
-            'health': '/health'
-        },
-        'description': 'API para consultas de DNI y antecedentes con fotos/PDFs en base64'
+        'comando': '/dniresult?dni=12345678&key=TU_API_KEY',
+        'info': '@zGatoO - @WinniePoohOFC - @choco_tete',
+        'servicio': 'API DNI Basico'
     })
 
 def restart_telethon():
@@ -1214,13 +1272,13 @@ def restart_telethon():
         
         # Esperar un poco antes de reiniciar
         import time
-        time.sleep(2)
+            time.sleep(2)
         
         # Reiniciar en un nuevo hilo
         init_telethon_thread()
         
         logger.info("Telethon reiniciado correctamente")
-        
+            
     except Exception as e:
         logger.error(f"Error reiniciando Telethon: {str(e)}")
 
@@ -1230,9 +1288,9 @@ def init_telethon_thread():
     
     def run_telethon():
         global client, loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
         async def init_client():
             global client
             try:
@@ -1243,8 +1301,8 @@ def init_telethon_thread():
                 
                 logger.info("Cliente de Telethon iniciado correctamente")
                 return True
-            except Exception as e:
-                logger.error(f"Error inicializando Telethon: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error inicializando Telethon: {str(e)}")
                 # Si es un error de EOF, la sesión puede estar corrupta
                 if "EOF" in str(e):
                     logger.error("Error EOF detectado - la sesión puede estar corrupta")
