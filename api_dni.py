@@ -395,7 +395,7 @@ def consult_dnit_sync(dni_number):
         # Si es un error de desconexión, intentar reconectar
         if "Cannot send requests while disconnected" in str(e):
             logger.error("Error de desconexión detectado, intentando reconectar...")
-            restart_telethon()
+                restart_telethon()
             return {
                 'success': False,
                 'error': 'Error de conexión detectado. Intenta nuevamente en unos segundos.'
@@ -422,7 +422,7 @@ def consult_antecedentes_sync(dni_number, tipo):
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_antecedentes_async(dni_number, tipo), loop)
         result = future.result(timeout=35)  # 35 segundos de timeout
-        return result
+                return result
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout consultando {tipo.upper()} DNI {dni_number}")
@@ -865,7 +865,7 @@ def dni_result():
     
     # Validar API key
     if not api_key:
-        return jsonify({
+    return jsonify({
             'success': False,
             'error': 'API Key requerida. Use: /dniresult?dni=12345678&key=TU_API_KEY'
         }), 401
