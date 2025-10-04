@@ -39,6 +39,7 @@ app = Flask(__name__)
 # Variables globales
 client = None
 loop = None
+is_ready = False  # Flag global para saber si el bot ya está listo
 
 # La función validate_api_key ahora se importa desde database_postgres
 
@@ -311,37 +312,24 @@ def parse_antecedentes_response(text, tipo):
 
 def consult_dni_sync(dni_number):
     """Consulta el DNI usando Telethon de forma síncrona."""
-    global client, loop
+    global client, loop, is_ready
     
     try:
-        # Verificar que el cliente esté disponible
-        if not client or not loop:
-            logger.error("Cliente de Telethon no está disponible")
-        return {
-            'success': False,
+        # Verificar que el cliente esté disponible y listo
+        if not is_ready or not client or not loop:
+            logger.error("Cliente de Telethon no está disponible o no está listo")
+            return {
+                'success': False,
                 'error': 'Cliente de Telegram no disponible. Intenta nuevamente en unos segundos.'
             }
         
-        # Verificar conexión y intentar reconectar si es necesario
+        # Verificar conexión
         if not client.is_connected():
-            logger.warning("Cliente desconectado, intentando reconectar...")
-            try:
-                future_connect = asyncio.run_coroutine_threadsafe(client.connect(), loop)
-                future_connect.result(timeout=10)
-                if client.is_connected():
-                    logger.info("Reconectado exitosamente")
-                else:
-                    logger.error("No se pudo reconectar")
-                    return {
-                        'success': False,
-                        'error': 'No se pudo conectar a Telegram. Intenta nuevamente.'
-                    }
-            except Exception as e:
-                logger.error(f"Error reconectando: {e}")
-                return {
-                    'success': False,
-                    'error': 'Error de conexión. Intenta nuevamente en unos segundos.'
-                }
+            logger.warning("Cliente desconectado, esperando reconexión automática...")
+            return {
+                'success': False,
+                'error': 'Cliente de Telegram desconectado. Intenta nuevamente en unos segundos.'
+            }
     
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dni_async(dni_number), loop)
@@ -390,35 +378,22 @@ def consult_dni_sync(dni_number):
 
 def consult_dnit_sync(dni_number):
     """Consulta el DNI detallado usando Telethon de forma síncrona."""
-    global client, loop
+    global client, loop, is_ready
     
-    if not client or not loop:
+    if not is_ready or not client or not loop:
         return {
             'success': False,
-            'error': 'Cliente de Telegram no inicializado'
+            'error': 'Cliente de Telegram no disponible o no está listo'
         }
     
     try:
-        # Verificar conexión y intentar reconectar si es necesario
+        # Verificar conexión
         if not client.is_connected():
-            logger.warning("Cliente desconectado, intentando reconectar...")
-            try:
-                future_connect = asyncio.run_coroutine_threadsafe(client.connect(), loop)
-                future_connect.result(timeout=10)
-                if client.is_connected():
-                    logger.info("Reconectado exitosamente")
-                else:
-                    logger.error("No se pudo reconectar")
-                    return {
-                        'success': False,
-                        'error': 'No se pudo conectar a Telegram. Intenta nuevamente.'
-                    }
-            except Exception as e:
-                logger.error(f"Error reconectando: {e}")
-                return {
-                    'success': False,
-                    'error': 'Error de conexión. Intenta nuevamente en unos segundos.'
-                }
+            logger.warning("Cliente desconectado, esperando reconexión automática...")
+            return {
+                'success': False,
+                'error': 'Cliente de Telegram desconectado. Intenta nuevamente en unos segundos.'
+            }
         
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dnit_async(dni_number), loop)
@@ -450,37 +425,24 @@ def consult_dnit_sync(dni_number):
 
 def consult_antecedentes_sync(dni_number, tipo):
     """Consulta antecedentes usando Telethon de forma síncrona."""
-    global client, loop
+    global client, loop, is_ready
     
     try:
-        # Verificar que el cliente esté disponible
-        if not client or not loop:
-            logger.error("Cliente de Telethon no está disponible")
+        # Verificar que el cliente esté disponible y listo
+        if not is_ready or not client or not loop:
+            logger.error("Cliente de Telethon no está disponible o no está listo")
             return {
                 'success': False,
                 'error': 'Cliente de Telegram no disponible. Intenta nuevamente en unos segundos.'
             }
         
-        # Verificar conexión y intentar reconectar si es necesario
+        # Verificar conexión
         if not client.is_connected():
-            logger.warning("Cliente desconectado, intentando reconectar...")
-            try:
-                future_connect = asyncio.run_coroutine_threadsafe(client.connect(), loop)
-                future_connect.result(timeout=10)
-                if client.is_connected():
-                    logger.info("Reconectado exitosamente")
-                else:
-                    logger.error("No se pudo reconectar")
-                    return {
-                        'success': False,
-                        'error': 'No se pudo conectar a Telegram. Intenta nuevamente.'
-                    }
-            except Exception as e:
-                logger.error(f"Error reconectando: {e}")
-                return {
-                    'success': False,
-                    'error': 'Error de conexión. Intenta nuevamente en unos segundos.'
-                }
+            logger.warning("Cliente desconectado, esperando reconexión automática...")
+            return {
+                'success': False,
+                'error': 'Cliente de Telegram desconectado. Intenta nuevamente en unos segundos.'
+            }
         
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_antecedentes_async(dni_number, tipo), loop)
@@ -1345,7 +1307,7 @@ def restart_telethon():
 def init_telethon_thread():
     """Inicializa Telethon en un hilo separado con reconexión automática."""
     def run_telethon():
-        global client, loop
+        global client, loop, is_ready
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -1356,46 +1318,35 @@ def init_telethon_thread():
                 config.API_HASH
             )
             
-            async def auto_reconnect():
-                """Monitorea el estado de conexión y se reconecta automáticamente."""
+            async def start_telegram():
+                global is_ready
+                await client.start()
+                is_ready = True
+                logger.info("✅ Cliente de Telethon iniciado correctamente")
+                
+                # Lazo infinito para reconexión automática
                 while True:
                     try:
                         if not client.is_connected():
-                            logger.warning("⚠️ Telethon detectó desconexión. Intentando reconectar...")
-                            await client.connect()
-                            if await client.is_user_authorized():
-                                logger.info(f"✅ Reconectado correctamente a Telegram ({time.strftime('%H:%M:%S')})")
-                            else:
-                                logger.warning("⚠️ Cliente no autorizado. Revisa tu sesión.")
+                            logger.warning("⚠️ Detectada desconexión. Reconectando...")
+                            try:
+                                await client.connect()
+                                logger.info("🔁 Reconectado correctamente")
+                            except Exception as e:
+                                logger.error(f"❌ Error reconectando: {e}")
+                        else:
+                            # Ping de keepalive si está conectado
+                            try:
+                                await client.send_read_acknowledge("me")
+                                logger.debug("📡 Ping enviado para mantener conexión activa")
+                            except Exception:
+                                pass
                         await asyncio.sleep(5)  # verifica cada 5 segundos
                     except Exception as e:
                         logger.error(f"❌ Error durante reconexión automática: {e}")
                         await asyncio.sleep(10)  # espera más tiempo si hay error
             
-            async def ping_keepalive():
-                """Envía pings periódicos para mantener la conexión activa."""
-                while True:
-                    try:
-                        if client.is_connected():
-                            await client.send_read_acknowledge("me")  # ping mínimo
-                            logger.debug("📡 Ping enviado para mantener conexión activa")
-                    except Exception:
-                        pass
-                    await asyncio.sleep(300)  # cada 5 minutos
-            
-            # Iniciar el cliente de forma asíncrona
-            async def start_client():
-                await client.start()
-                logger.info("Cliente de Telethon iniciado correctamente")
-                
-                # Lanzar tareas en segundo plano
-                asyncio.create_task(auto_reconnect())
-                asyncio.create_task(ping_keepalive())
-            
-            loop.run_until_complete(start_client())
-            
-            # Mantener el loop corriendo
-            loop.run_forever()
+            loop.run_until_complete(start_telegram())
             
         except Exception as e:
             logger.error(f"Error inicializando Telethon: {str(e)}")
