@@ -395,7 +395,7 @@ def consult_dnit_sync(dni_number):
         # Si es un error de desconexión, intentar reconectar
         if "Cannot send requests while disconnected" in str(e):
             logger.error("Error de desconexión detectado, intentando reconectar...")
-                restart_telethon()
+            restart_telethon()
             return {
                 'success': False,
                 'error': 'Error de conexión detectado. Intenta nuevamente en unos segundos.'
