@@ -317,10 +317,10 @@ def consult_dni_sync(dni_number):
         # Verificar que el cliente esté disponible
         if not client or not loop:
             logger.error("Cliente de Telethon no está disponible")
-        return {
-            'success': False,
+            return {
+                'success': False,
                 'error': 'Cliente de Telegram no disponible. Intenta nuevamente en unos segundos.'
-        }
+            }
     
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dni_async(dni_number), loop)
