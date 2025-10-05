@@ -318,8 +318,8 @@ def consult_dni_sync(dni_number):
         # Verificar que el cliente esté disponible y listo
         if not is_ready or not client or not loop:
             logger.error("Cliente de Telethon no está disponible o no está listo")
-        return {
-            'success': False,
+            return {
+                'success': False,
                 'error': 'Cliente de API no disponible. Intenta nuevamente en unos segundos.'
             }
         
