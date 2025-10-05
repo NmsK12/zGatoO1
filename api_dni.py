@@ -568,7 +568,7 @@ async def consult_dni_async(dni_number):
                         logger.info(f"Mensaje de 'No se encontró información' detectado para DNI {dni_number}")
                         return {
                             'success': False,
-                            'error': 'No se encontró información para los datos ingresados.'
+                            'error': 'No encontre datos p babosa.'
                         }
                     
                     # Buscar respuesta específica para este DNI
@@ -958,9 +958,9 @@ def dni_result():
         response['data'] = result['parsed_data']
         
         return jsonify(response)
-        else:
-            return jsonify({
-                'success': False,
+    else:
+        return jsonify({
+            'success': False,
             'error': result['error']
             }), 500
             
@@ -998,7 +998,7 @@ def dnit_result():
             response['images'] = result['images']
         
         return jsonify(response)
-        else:
+    else:
         return jsonify({
             'success': False,
             'error': result['error']
@@ -1082,9 +1082,9 @@ def antpen_result():
                 'data': result['parsed_data']
             }
             return jsonify(response)
-        else:
-            return jsonify({
-                'success': False,
+    else:
+        return jsonify({
+            'success': False,
             'error': result['error']
         }), 500
 
@@ -1166,7 +1166,7 @@ def antpol_result():
                 'data': result['parsed_data']
             }
             return jsonify(response)
-        else:
+    else:
         return jsonify({
             'success': False,
             'error': result['error']
@@ -1250,7 +1250,7 @@ def antjud_result():
                 'data': result['parsed_data']
             }
         return jsonify(response)
-        else:
+    else:
         return jsonify({
             'success': False,
             'error': result['error']
@@ -1268,13 +1268,13 @@ def download_pdf(filename):
     
     if os.path.exists(pdf_path):
         return send_file(pdf_path, as_attachment=True, download_name=filename)
-        else:
+    else:
         return jsonify({'error': 'PDF no encontrado'}), 404
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Endpoint de salud de la API."""
-        return jsonify({
+    return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'service': 'WolfData DNI API'
@@ -1283,7 +1283,7 @@ def health_check():
 @app.route('/', methods=['GET'])
 def home():
     """Página de inicio de la API."""
-        return jsonify({
+    return jsonify({
         'comando': '/dniresult?dni=12345678&key=TU_API_KEY',
         'info': '@zGatoO - @WinniePoohOFC - @choco_tete',
         'servicio': 'API DNI Basico'
