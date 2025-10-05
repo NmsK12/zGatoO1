@@ -320,7 +320,7 @@ def consult_dni_sync(dni_number):
             logger.error("Cliente de Telethon no está disponible o no está listo")
         return {
             'success': False,
-                'error': 'Cliente de Telegram no disponible. Intenta nuevamente en unos segundos.'
+                'error': 'Cliente de API no disponible. Intenta nuevamente en unos segundos.'
             }
         
         # Verificar conexión
@@ -328,7 +328,7 @@ def consult_dni_sync(dni_number):
             logger.warning("Cliente desconectado, esperando reconexión automática...")
             return {
                 'success': False,
-                'error': 'Cliente de Telegram desconectado. Intenta nuevamente en unos segundos.'
+                'error': 'Cliente de API desconectado. Intenta nuevamente en unos segundos.'
             }
     
         # Ejecutar la consulta asíncrona en el loop existente
@@ -340,7 +340,7 @@ def consult_dni_sync(dni_number):
         logger.error(f"Timeout consultando DNI {dni_number}")
         return {
             'success': False,
-            'error': 'Timeout: No se recibió respuesta en 35 segundos'
+            'error': 'Timeout: Se busco por Todos lados, no encontramos datos'
         }
     except Exception as e:
         logger.error(f"Error consultando DNI {dni_number}: {str(e)}")
@@ -369,7 +369,7 @@ def consult_dni_sync(dni_number):
             logger.error("Sesión usada en múltiples IPs. Detén el proceso local y usa solo en contenedor.")
             return {
                 'success': False,
-                'error': 'Sesión en conflicto. Detén el proceso local y usa solo en contenedor.'
+                'error': 'Tenemos problemas, contacta con tu vendedor para que te de una solucion, gracias.'
             }
         return {
             'success': False,
@@ -383,7 +383,7 @@ def consult_dnit_sync(dni_number):
     if not is_ready or not client or not loop:
         return {
             'success': False,
-            'error': 'Cliente de Telegram no disponible o no está listo'
+            'error': 'Cliente de API no disponible o no está listo'
         }
     
     try:
@@ -392,7 +392,7 @@ def consult_dnit_sync(dni_number):
             logger.warning("Cliente desconectado, esperando reconexión automática...")
             return {
                 'success': False,
-                'error': 'Cliente de Telegram desconectado. Intenta nuevamente en unos segundos.'
+                'error': 'Cliente de API desconectado. Intenta nuevamente en unos segundos.'
             }
         
         # Ejecutar la consulta asíncrona en el loop existente
@@ -568,7 +568,7 @@ async def consult_dni_async(dni_number):
                         logger.info(f"Mensaje de 'No se encontró información' detectado para DNI {dni_number}")
                         return {
                             'success': False,
-                            'error': 'No se encontró información para los datos ingresados.'
+                            'error': 'No encontre datos p babosa.'
                         }
                     
                     # Buscar respuesta específica para este DNI
