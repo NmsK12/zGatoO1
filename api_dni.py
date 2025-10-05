@@ -318,8 +318,8 @@ def consult_dni_sync(dni_number):
         # Verificar que el cliente esté disponible y listo
         if not is_ready or not client or not loop:
             logger.error("Cliente de Telethon no está disponible o no está listo")
-            return {
-                'success': False,
+        return {
+            'success': False,
                 'error': 'Cliente de Telegram no disponible. Intenta nuevamente en unos segundos.'
             }
         
@@ -563,6 +563,14 @@ async def consult_dni_async(dni_number):
                     if message.text.strip() == f"/dni {dni_number}":
                         continue
                     
+                    # Verificar si es mensaje de "No se encontró información"
+                    if "[✖️] No se encontro informacion para los datos ingresados." in message.text:
+                        logger.info(f"Mensaje de 'No se encontró información' detectado para DNI {dni_number}")
+                        return {
+                            'success': False,
+                            'error': 'No se encontró información para los datos ingresados.'
+                        }
+                    
                     # Buscar respuesta específica para este DNI
                     if (f"DNI ➾ {dni_number}" in message.text or 
                         f"DNI = {dni_number}" in message.text or
@@ -657,6 +665,14 @@ async def consult_dnit_async(dni_number):
                         logger.info(f"Esperando {wait_time} segundos...")
                         await asyncio.sleep(wait_time)
                         continue
+                
+                # Verificar si es mensaje de "No se encontró información"
+                if "[✖️] No se encontro informacion para los datos ingresados." in message.text:
+                    logger.info(f"Mensaje de 'No se encontró información' detectado para DNI detallado {dni_number}")
+                    return {
+                        'success': False,
+                        'error': 'No se encontró información para los datos ingresados.'
+                    }
                 
                 # Buscar respuesta específica para DNI detallado
                 clean_message = message.text.replace('`', '').replace('*', '').replace('**', '')
@@ -821,6 +837,14 @@ async def consult_antecedentes_async(dni_number, tipo):
                     if message.text.strip() == f"{comando} {dni_number}":
                         continue
                     
+                    # Verificar si es mensaje de "No se encontró información"
+                    if "[✖️] No se encontro informacion para los datos ingresados." in message.text:
+                        logger.info(f"Mensaje de 'No se encontró información' detectado para {tipo.upper()} DNI {dni_number}")
+                        return {
+                            'success': False,
+                            'error': 'No se encontró información para los datos ingresados.'
+                        }
+                    
                     # Buscar respuesta específica para antecedentes
                     # Limpiar el texto para comparación
                     clean_message = message.text.replace('`', '').replace('*', '').replace('**', '')
@@ -911,10 +935,10 @@ def dni_result():
     
     # Verificar formato del DNI
     if not dni.isdigit() or len(dni) != 8:
-        return jsonify({
-            'success': False,
+            return jsonify({
+                'success': False,
             'error': 'DNI debe ser un número de 8 dígitos'
-        }), 400
+            }), 400
         
     # Ejecutar consulta síncrona
     result = consult_dni_sync(dni)
@@ -934,11 +958,11 @@ def dni_result():
         response['data'] = result['parsed_data']
         
         return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
-        }), 500
+            }), 500
             
 @app.route('/dnit', methods=['GET'])
 def dnit_result():
@@ -974,7 +998,7 @@ def dnit_result():
             response['images'] = result['images']
         
         return jsonify(response)
-    else:
+        else:
         return jsonify({
             'success': False,
             'error': result['error']
@@ -1058,9 +1082,9 @@ def antpen_result():
                 'data': result['parsed_data']
             }
             return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
         }), 500
 
@@ -1142,7 +1166,7 @@ def antpol_result():
                 'data': result['parsed_data']
             }
             return jsonify(response)
-    else:
+        else:
         return jsonify({
             'success': False,
             'error': result['error']
@@ -1226,7 +1250,7 @@ def antjud_result():
                 'data': result['parsed_data']
             }
         return jsonify(response)
-    else:
+        else:
         return jsonify({
             'success': False,
             'error': result['error']
@@ -1244,13 +1268,13 @@ def download_pdf(filename):
     
     if os.path.exists(pdf_path):
         return send_file(pdf_path, as_attachment=True, download_name=filename)
-    else:
+        else:
         return jsonify({'error': 'PDF no encontrado'}), 404
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Endpoint de salud de la API."""
-    return jsonify({
+        return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'service': 'WolfData DNI API'
@@ -1259,7 +1283,7 @@ def health_check():
 @app.route('/', methods=['GET'])
 def home():
     """Página de inicio de la API."""
-    return jsonify({
+        return jsonify({
         'comando': '/dniresult?dni=12345678&key=TU_API_KEY',
         'info': '@zGatoO - @WinniePoohOFC - @choco_tete',
         'servicio': 'API DNI Basico'
