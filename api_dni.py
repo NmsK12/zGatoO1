@@ -447,7 +447,7 @@ def consult_antecedentes_sync(dni_number, tipo):
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_antecedentes_async(dni_number, tipo), loop)
         result = future.result(timeout=15)  # 15 segundos de timeout
-                return result
+        return result
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout consultando {tipo.upper()} DNI {dni_number}")
@@ -917,7 +917,7 @@ def dni_result():
     
     # Validar API key
     if not api_key:
-    return jsonify({
+        return jsonify({
             'success': False,
             'error': 'API Key requerida. Use: /dniresult?dni=12345678&key=TU_API_KEY'
         }), 401
@@ -925,7 +925,7 @@ def dni_result():
     # Validar API key en base de datos
     validation = validate_api_key(api_key)
     if not validation['valid']:
-    return jsonify({
+        return jsonify({
             'success': False,
             'error': validation['error']
         }), 401
@@ -938,8 +938,8 @@ def dni_result():
     
     # Verificar formato del DNI
     if not dni.isdigit() or len(dni) != 8:
-            return jsonify({
-                'success': False,
+        return jsonify({
+            'success': False,
             'error': 'DNI debe ser un número de 8 dígitos'
             }), 400
         
@@ -961,11 +961,11 @@ def dni_result():
         response['data'] = result['parsed_data']
         
         return jsonify(response)
-        else:
-            return jsonify({
-                'success': False,
+    else:
+        return jsonify({
+            'success': False,
             'error': result['error']
-            }), 500
+        }), 500
             
 @app.route('/dnit', methods=['GET'])
 def dnit_result():
@@ -1013,10 +1013,10 @@ def antpen_result():
     dni = request.args.get('dni')
     
     if not dni:
-            return jsonify({
-                'success': False,
+        return jsonify({
+            'success': False,
             'error': 'Parámetro DNI requerido. Use: /antpen?dni=12345678'
-            }), 400
+        }), 400
         
     # Verificar formato del DNI
     if not dni.isdigit() or len(dni) != 8:
@@ -1084,10 +1084,10 @@ def antpen_result():
                 'timestamp': datetime.now().isoformat(),
                 'data': result['parsed_data']
             }
-            return jsonify(response)
-        else:
-            return jsonify({
-                'success': False,
+        return jsonify(response)
+    else:
+        return jsonify({
+            'success': False,
             'error': result['error']
         }), 500
 
@@ -1168,7 +1168,7 @@ def antpol_result():
                 'timestamp': datetime.now().isoformat(),
                 'data': result['parsed_data']
             }
-            return jsonify(response)
+        return jsonify(response)
     else:
         return jsonify({
             'success': False,
