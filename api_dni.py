@@ -3,6 +3,7 @@
 """
 API DNI - WolfData Dox
 API simple para consultas de DNI con foto en base64
+Sesión regenerada: 2025-10-06
 """
 
 import asyncio
