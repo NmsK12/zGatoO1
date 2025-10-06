@@ -318,8 +318,8 @@ def consult_dni_sync(dni_number):
         # Verificar que el cliente esté disponible y listo
         if not is_ready or not client or not loop:
             logger.error("Cliente de Telethon no está disponible o no está listo")
-            return {
-                'success': False,
+        return {
+            'success': False,
                 'error': 'Cliente de API no disponible. Intenta nuevamente en unos segundos.'
             }
         
@@ -333,14 +333,14 @@ def consult_dni_sync(dni_number):
     
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dni_async(dni_number), loop)
-        result = future.result(timeout=35)  # 35 segundos de timeout
+        result = future.result(timeout=15)  # 15 segundos de timeout
         return result
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout consultando DNI {dni_number}")
         return {
             'success': False,
-            'error': 'Timeout: Se busco por Todos lados, no encontramos datos'
+            'error': 'No encontre datos p babosa.'
         }
     except Exception as e:
         logger.error(f"Error consultando DNI {dni_number}: {str(e)}")
@@ -397,7 +397,7 @@ def consult_dnit_sync(dni_number):
         
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_dnit_async(dni_number), loop)
-        result = future.result(timeout=35)  # 35 segundos de timeout
+        result = future.result(timeout=15)  # 15 segundos de timeout
         return result
         
     except asyncio.TimeoutError:
@@ -446,8 +446,8 @@ def consult_antecedentes_sync(dni_number, tipo):
         
         # Ejecutar la consulta asíncrona en el loop existente
         future = asyncio.run_coroutine_threadsafe(consult_antecedentes_async(dni_number, tipo), loop)
-        result = future.result(timeout=35)  # 35 segundos de timeout
-        return result
+        result = future.result(timeout=15)  # 15 segundos de timeout
+                return result
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout consultando {tipo.upper()} DNI {dni_number}")
@@ -494,7 +494,7 @@ async def consult_dni_async(dni_number):
     global client
     
     try:
-        max_attempts = 3  # Máximo 3 intentos
+        max_attempts = 1  # Solo 1 intento
         attempt = 0
         
         while attempt < max_attempts:
@@ -505,14 +505,14 @@ async def consult_dni_async(dni_number):
             await client.send_message(config.TARGET_BOT, f"/dni {dni_number}")
             logger.info(f"Comando enviado correctamente (intento {attempt})")
             
-            # Esperar respuesta (máximo 20 segundos por intento)
+            # Esperar respuesta (máximo 10 segundos por intento)
             start_time = time.time()
             processing_detected = False
             wait_detected = False
             wait_seconds = 0
             last_message_id = 0  # Para rastrear mensajes nuevos
             
-            while time.time() - start_time < 20:
+            while time.time() - start_time < 10:
                 # Obtener mensajes recientes (solo los nuevos)
                 messages = await client.get_messages(config.TARGET_BOT, limit=5)
                 
@@ -563,8 +563,11 @@ async def consult_dni_async(dni_number):
                     if message.text.strip() == f"/dni {dni_number}":
                         continue
                     
-                    # Verificar si es mensaje de "No se encontró información"
-                    if "[✖️] No se encontro informacion para los datos ingresados." in message.text:
+                    # Verificar si es mensaje de "No se encontró información" (más flexible)
+                    if ("[✖️] No se encontro informacion para los datos ingresados." in message.text or
+                        "No se encontro informacion" in message.text or
+                        "No se encontró información" in message.text or
+                        "no encontro informacion" in message.text.lower()):
                         logger.info(f"Mensaje de 'No se encontró información' detectado para DNI {dni_number}")
                         return {
                             'success': False,
@@ -914,7 +917,7 @@ def dni_result():
     
     # Validar API key
     if not api_key:
-        return jsonify({
+    return jsonify({
             'success': False,
             'error': 'API Key requerida. Use: /dniresult?dni=12345678&key=TU_API_KEY'
         }), 401
@@ -922,7 +925,7 @@ def dni_result():
     # Validar API key en base de datos
     validation = validate_api_key(api_key)
     if not validation['valid']:
-        return jsonify({
+    return jsonify({
             'success': False,
             'error': validation['error']
         }), 401
@@ -958,9 +961,9 @@ def dni_result():
         response['data'] = result['parsed_data']
         
         return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
             }), 500
             
@@ -1082,9 +1085,9 @@ def antpen_result():
                 'data': result['parsed_data']
             }
             return jsonify(response)
-    else:
-        return jsonify({
-            'success': False,
+        else:
+            return jsonify({
+                'success': False,
             'error': result['error']
         }), 500
 
